@@ -1,5 +1,7 @@
 # FilePack API
 
+![CI](https://github.com/hamdenvogel/filepack-api/actions/workflows/ci.yml/badge.svg)
+
 API Spring Boot para empacotamento/descompactação de arquivos nos formatos **ZIP** e **7z**, com ou sem senha.
 
 Repositório: [hamdenvogel/filepack-api](https://github.com/hamdenvogel/filepack-api)
