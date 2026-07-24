@@ -1,0 +1,14 @@
+target/
+.git
+.gitignore
+.gitattributes
+.mvn
+mvnw
+mvnw.cmd
+data/
+infra/
+*.md
+.idea
+.vscode
+**/*Test.java
+**/test/
