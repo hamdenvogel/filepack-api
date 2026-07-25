@@ -17,6 +17,17 @@ docker pull ghcr.io/hamdenvogel/filepack-api:v0.1.0
 
 Package: [ghcr.io/hamdenvogel/filepack-api](https://github.com/hamdenvogel/filepack-api/pkgs/container/filepack-api)
 
+### CI/CD — o que cada gatilho faz
+
+> **PR só valida; `main` integra; tag `v*` publica e faz deploy.**
+
+| Gatilho | Ação |
+|---------|------|
+| Pull Request / push na `main` | CI (testes, package, Docker, scans) — **sem** deploy |
+| Tag `v*` (ex.: `v0.1.0`) | GitHub Release + imagem no GHCR + deploy no Cloud Run |
+
+Detalhes do fluxo e como versionar: [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## 📋 Descrição
 
 FilePack API é uma aplicação que recebe múltiplos arquivos via upload e gera um arquivo ZIP criptografado, protegido com a senha fornecida pelo usuário. Ideal para cenários onde é necessário:
