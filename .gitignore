@@ -32,6 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 
-# Docs Markdown na raiz: soh README no GitHub
+# Docs Markdown na raiz: soh README e CONTRIBUTING no GitHub
 /*.md
 !/README.md
+!/CONTRIBUTING.md
