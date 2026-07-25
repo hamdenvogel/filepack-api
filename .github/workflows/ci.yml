@@ -39,8 +39,43 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+      - name: Secret scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Docker image
         run: docker build -t filepack-api:ci .
+
+      # Politica Fase 4: falha so em CRITICAL (ignore-unfixed evita ruido de CVE sem patch).
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: filepack-api:ci
+          format: table
+          exit-code: "1"
+          severity: CRITICAL
+          ignore-unfixed: true
+
+      - name: Export Trivy report
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: filepack-api:ci
+          format: json
+          output: trivy-report.json
+          exit-code: "0"
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Start container
         run: docker run --detach --name filepack-api-ci --publish 8080:8080 filepack-api:ci
