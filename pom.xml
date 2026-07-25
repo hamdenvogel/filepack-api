@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>br.com.hvogel</groupId>
 	<artifactId>filepack-api</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.1.0</version>
 	<name>filepack-api</name>
 	<description>FilePack API - empacota e descompacta arquivos (ZIP/7z) - HVogel / HV Softwares</description>
 	<properties>

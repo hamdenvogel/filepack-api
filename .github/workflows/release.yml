@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # A tag aponta para um commit da main, que ja passou pelo CI (branch protegida).
+      # Aqui o objetivo e empacotar o artefato da release, nao repetir a suite de testes.
+      - name: Build jar
+        run: |
+          chmod +x mvnw
+          ./mvnw -B clean package -DskipTests
+
+      - name: Show generated jar
+        run: ls -lh target/*.jar
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          jar=$(ls target/filepack-api-*.jar | grep -Ev 'sources|javadoc' | head -n 1)
+          echo "Attaching: ${jar}"
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "FilePack API ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            "${jar}"
