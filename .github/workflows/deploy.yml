@@ -1,0 +1,89 @@
+name: Deploy to Cloud Run
+
+on:
+  # Roda depois que a imagem da tag foi publicada no GHCR (garante a ordem correta).
+  workflow_run:
+    workflows: ["Publish Docker image"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag already published to GHCR"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy revision
+    runs-on: ubuntu-latest
+
+    # No fluxo automatico, so publica quando a imagem subiu com sucesso para uma tag de versao.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+
+    steps:
+      - name: Resolve image to deploy
+        id: image
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tag="${{ inputs.image_tag }}"
+          else
+            tag="${{ github.event.workflow_run.head_branch }}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${{ github.repository }}:${tag}" >> "$GITHUB_OUTPUT"
+          echo "Deploying ghcr.io/${{ github.repository }}:${tag}"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Sem outras flags, o Cloud Run preserva a configuracao atual do servico
+      # (env vars, memoria, cpu) e troca apenas a imagem.
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --image "${{ steps.image.outputs.image }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+
+      - name: Verify service health
+        run: |
+          url=$(gcloud run services describe "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --format 'value(status.url)')
+          echo "Service URL: ${url}"
+
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error "${url}/actuator/health"; then
+              echo
+              echo "Deployed revision is healthy."
+              exit 0
+            fi
+            echo "Waiting for healthy response (attempt ${attempt}/20)..."
+            sleep 5
+          done
+
+          echo "Health check failed after deploy."
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Cloud Run deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: \`${{ steps.image.outputs.image }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Service: \`${{ vars.CLOUD_RUN_SERVICE }}\` (${{ vars.GCP_REGION }})" >> "$GITHUB_STEP_SUMMARY"
