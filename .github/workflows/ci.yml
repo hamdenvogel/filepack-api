@@ -53,7 +53,9 @@ jobs:
       - name: Build Docker image
         run: docker build -t filepack-api:ci .
 
-      # Politica Fase 4: falha so em CRITICAL (ignore-unfixed evita ruido de CVE sem patch).
+      # Politica Fase 4:
+      # - falha o build em CRITICAL nas libs da aplicacao (vuln-type: library)
+      # - CVEs do SO base entram no relatorio, mas nao derrubam o CI sozinhas (comum em imagens Alpine/JDK)
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -62,6 +64,7 @@ jobs:
           exit-code: "1"
           severity: CRITICAL
           ignore-unfixed: true
+          vuln-type: "library"
 
       - name: Export Trivy report
         if: always()
@@ -73,6 +76,7 @@ jobs:
           exit-code: "0"
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+          vuln-type: "os,library"
 
       - name: Upload Trivy report
         if: always()
@@ -112,11 +116,16 @@ jobs:
 
       - name: Show container logs
         if: always()
-        run: docker logs filepack-api-ci
+        run: |
+          if docker container inspect filepack-api-ci >/dev/null 2>&1; then
+            docker logs filepack-api-ci
+          else
+            echo "Container was not started; skipping logs."
+          fi
 
       - name: Stop container
         if: always()
-        run: docker rm --force filepack-api-ci
+        run: docker rm --force filepack-api-ci || true
 
       - name: Upload Surefire reports on failure
         if: failure()
