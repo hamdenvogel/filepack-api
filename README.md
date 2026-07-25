@@ -9,6 +9,14 @@ Repositório: [hamdenvogel/filepack-api](https://github.com/hamdenvogel/filepack
 
 Demo: https://filepack-api-649100031966.us-central1.run.app
 
+### Imagem Docker (GHCR)
+
+```bash
+docker pull ghcr.io/hamdenvogel/filepack-api:v0.1.0
+```
+
+Package: [ghcr.io/hamdenvogel/filepack-api](https://github.com/hamdenvogel/filepack-api/pkgs/container/filepack-api)
+
 ## 📋 Descrição
 
 FilePack API é uma aplicação que recebe múltiplos arquivos via upload e gera um arquivo ZIP criptografado, protegido com a senha fornecida pelo usuário. Ideal para cenários onde é necessário:
