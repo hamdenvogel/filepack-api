@@ -39,6 +39,44 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+      - name: Build Docker image
+        run: docker build -t filepack-api:ci .
+
+      - name: Start container
+        run: docker run --detach --name filepack-api-ci --publish 8080:8080 filepack-api:ci
+
+      - name: Check container health
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://localhost:8080/actuator/health; then
+              echo
+              echo "FilePack API container is healthy."
+              exit 0
+            fi
+
+            if ! docker container inspect filepack-api-ci --format '{{.State.Running}}' | grep -q true; then
+              echo "Container stopped before becoming healthy."
+              docker logs filepack-api-ci
+              exit 1
+            fi
+
+            echo "Waiting for FilePack API (attempt ${attempt}/30)..."
+            sleep 2
+          done
+
+          echo "Health check timed out."
+          docker logs filepack-api-ci
+          exit 1
+
+      - name: Show container logs
+        if: always()
+        run: docker logs filepack-api-ci
+
+      - name: Stop container
+        if: always()
+        run: docker rm --force filepack-api-ci
+
       - name: Upload Surefire reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
