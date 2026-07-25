@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Maven tests
+  build:
+    name: Build & test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,7 +20,29 @@ jobs:
           java-version: "25"
           cache: maven
 
-      - name: Run tests
+      - name: Build and test (package)
         run: |
           chmod +x mvnw
-          ./mvnw -B test
+          ./mvnw -B clean package
+
+      - name: Show generated jar
+        run: ls -lh target/*.jar
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: filepack-api-jar
+          path: |
+            target/filepack-api-*.jar
+            !target/*-sources.jar
+            !target/*-javadoc.jar
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Surefire reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
