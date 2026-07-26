@@ -2,6 +2,7 @@
 
 ![CI](https://github.com/hamdenvogel/filepack-api/actions/workflows/ci.yml/badge.svg)
 ![Release](https://img.shields.io/github/v/release/hamdenvogel/filepack-api?label=release)
+![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fhamdenvogel%2Ffilepack--api-blue)
 
 API Spring Boot para empacotamento/descompactação de arquivos nos formatos **ZIP** e **7z**, com ou sem senha.
 
@@ -23,8 +24,10 @@ Package: [ghcr.io/hamdenvogel/filepack-api](https://github.com/hamdenvogel/filep
 
 | Gatilho | Ação |
 |---------|------|
-| Pull Request / push na `main` | CI (testes, package, Docker, scans) — **sem** deploy |
-| Tag `v*` (ex.: `v0.1.0`) | GitHub Release + imagem no GHCR + deploy no Cloud Run |
+| Pull Request / push na `main` | CI: Maven, Docker, Gitleaks, Trivy — **sem** deploy |
+| Tag `v*` (ex.: `v0.1.0`) | GitHub Release (JAR) + imagem no GHCR + deploy no Cloud Run + health check |
+
+Autenticação no GCP via **Workload Identity Federation** (OIDC, sem chave JSON no repositório). Dependabot ativo para Maven, Actions e Docker.
 
 Detalhes do fluxo e como versionar: [CONTRIBUTING.md](CONTRIBUTING.md).
 
