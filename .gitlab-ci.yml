@@ -1,0 +1,59 @@
+# GitLab CI — espelho do essencial do GitHub Actions (Fase 10).
+# Origem oficial do código: GitHub. Deploy Cloud Run continua só no GitHub (tag v*).
+# Stages: test → docker (sem deploy, para economizar minutos do Free).
+
+stages:
+  - test
+  - docker
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Xmx1g"
+  FF_NETWORK_PER_BUILD: "true"
+
+default:
+  interruptible: true
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}-maven"
+  paths:
+    - .m2/repository/
+
+maven-package:
+  stage: test
+  image: eclipse-temurin:25-jdk
+  script:
+    - chmod +x mvnw
+    - ./mvnw -B clean package
+    - ls -lh target/*.jar
+  artifacts:
+    name: "filepack-api-jar-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - target/filepack-api-*.jar
+    exclude:
+      - target/*-sources.jar
+      - target/*-javadoc.jar
+    expire_in: 7 days
+    when: on_success
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+docker-build:
+  stage: docker
+  image: docker:27-cli
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  needs:
+    - maven-package
+  script:
+    - docker info
+    - docker build -t filepack-api:ci .
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
